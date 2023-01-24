@@ -1,6 +1,6 @@
 import json
-import os
 import logging
+import os
 from logging.handlers import RotatingFileHandler
 
 import requests
@@ -54,7 +54,7 @@ def get_price_static(adult_heats_count):
     """Определяем кол-во слотов до повышения цены"""
     if adult_heats_count > 800:
         return 'cлоты продаются по максимальной цене 3500 руб'
-    elif adult_heats_count > 300:
+    if adult_heats_count > 300:
         return (
             f'2500 руб. До повышения цены осталось '
             f'{800 - adult_heats_count} слотов'
@@ -77,7 +77,9 @@ def preparing_race_info(json_data):
     distance10k_name = json_data['races'][2]['name']
     distance10k_ready_heats_count = json_data['races'][2]['heats_ready_count']
     distance_kids_name = json_data['races'][3]['name']
-    distance_kids_ready_heats_count = json_data['races'][3]['heats_ready_count']
+    distance_kids_ready_heats_count = json_data[
+        'races'
+    ][3]['heats_ready_count']
     adult_heats_count = (
         distance30k_ready_heats_count +
         distance30k_ready_heats_count +
