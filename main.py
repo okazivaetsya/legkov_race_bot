@@ -108,7 +108,7 @@ def preparing_heat_info(json_data):
 
     return (
         f'id: {id}\n'
-        f'статус: {status}\n'
+        f'Статус: {status}\n'
         f'ФИО: {first_name} {last_name} {middle_name}\n'
         f'Дата рождения: {birth_date}\n'
         f'Пол: {gender}\n'
