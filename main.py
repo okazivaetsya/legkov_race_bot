@@ -59,11 +59,10 @@ def get_price_static(adult_heats_count):
             f'2500 руб. До повышения цены осталось '
             f'{800 - adult_heats_count} слотов'
         )
-    else:
-        return (
-            f'1500 руб. До повышения цены осталось '
-            f'{300 - adult_heats_count} слотов'
-        )
+    return (
+        f'1500 руб. До повышения цены осталось '
+        f'{300 - adult_heats_count} слотов'
+    )
 
 
 def preparing_race_info(json_data):
