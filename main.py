@@ -11,6 +11,7 @@ load_dotenv(find_dotenv())
 
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 MY_TELEGRAM_ID = os.getenv('MY_TELEGRAM_ID')
+REGPLACE_TOKEN = os.getenv('REGPLACE_TOKEN')
 URL = 'https://api.reg.place/v1/events/uralhim-gonka-legkova/'
 PARAMS = {
     'heats_stats': 'true',
@@ -20,7 +21,8 @@ HEATS_STATUSES = {
     'ready': 'зарегистрирована',
     'created': 'новая',
     'cancelled': 'отменена',
-    'transferred': 'передана другому участнику'
+    'transferred': 'передана другому участнику',
+    'locked': 'оплачивается'
 }
 GENDERS = {
     'male': 'М',
@@ -81,7 +83,7 @@ def preparing_race_info(json_data):
     ][3]['heats_ready_count']
     adult_heats_count = (
         distance30k_ready_heats_count +
-        distance30k_ready_heats_count +
+        distance20k_ready_heats_count +
         distance10k_ready_heats_count
     )
 
@@ -93,6 +95,18 @@ def preparing_race_info(json_data):
         f'{distance10k_name}: {distance10k_ready_heats_count}\n'
         f'{distance_kids_name}: {distance_kids_ready_heats_count}\n'
         f'Стоимость участия: {get_price_static(adult_heats_count)}'
+    )
+
+
+def get_adult_heats_count(json_data):
+    """Получаем сумму всех зареганых взрослых заявок"""
+    distance30k_ready_heats_count = json_data['races'][0]['heats_ready_count']
+    distance20k_ready_heats_count = json_data['races'][1]['heats_ready_count']
+    distance10k_ready_heats_count = json_data['races'][2]['heats_ready_count']
+    return (
+        distance30k_ready_heats_count +
+        distance20k_ready_heats_count +
+        distance10k_ready_heats_count
     )
 
 
@@ -121,6 +135,7 @@ def preparing_heat_info(json_data):
 
 @bot.message_handler(commands=['start'])
 def start(message):
+    """Обработчик команды start"""
     logger.info(f'Пользователь {message.from_user.id} нажал старт')
     try:
         response = requests.get(URL, params=PARAMS)
@@ -129,11 +144,48 @@ def start(message):
             json_data = json.loads(response.text)['event']
             text_message = preparing_race_info(json_data)
             bot.send_message(message.from_user.id, text_message)
+    except Exception as error:
+        error_message = f'Сбой в работе программы: {error}'
+        bot.send_message(
+            message.from_user.id,
+            f'Сбой в работе программы: {error}'
+        )
+        logger.critical(error_message)
+
+
+def check_response(response):
+    """Проверка ответа от API."""
+    if not isinstance(response, dict):
+        error_message = 'Ответ API не является словарем'
+        logger.error(error_message)
+        raise TypeError(error_message)
+    elif 'event' or 'heat' not in response:
+        error_message = 'Ответ API не содержит ключ "homeworks"'
+        logger.error(error_message)
+        raise KeyError(error_message)
+    homework_list = response['homeworks']
+    return homework_list
+
+
+@bot.message_handler(content_types=['text'])
+def get_heat_info(message):
+    """Обработчик тестовых сообщений"""
+    params = {
+        'token': REGPLACE_TOKEN
+    }
+    try:
+        heat_number = int(message.text)
+        heat_url = f'https://api.reg.place/v1/heats/{heat_number}'
+        response = requests.get(heat_url, params=params)
+        if response.status_code == 200:
+            json_data = json.loads(response.text)
+            text_message = preparing_heat_info(json_data)
+            bot.send_message(message.from_user.id, text_message)
         else:
             bot.send_message(
-                message.from_user.id,
-                f'Статус ответа сервера: {response.status_code}'
-            )
+                    message.from_user.id,
+                    f'Ошибка: Статус ответа сервера: {response.status_code}'
+                )
             logger.critical(f'Статус ответа сервера: {response.status_code}')
 
     except Exception as error:
@@ -145,26 +197,31 @@ def start(message):
         logger.critical(error_message)
 
 
-@bot.message_handler(content_types=['text'])
-def get_heat_info(message):
-    params = {
-        'token': 'f307873c-7d5f-4eff-a792-fa77662ee826'
-    }
-    try:
-        heat_number = int(message.text)
-        heat_url = f'https://api.reg.place/v1/heats/{heat_number}'
-        response = requests.get(heat_url, params=params)
-        json_data = json.loads(response.text)
-        text_message = preparing_heat_info(json_data)
-        bot.send_message(message.from_user.id, text_message)
-
-    except Exception as error:
-        error_message = f'Сбой в работе программы: {error}'
-        bot.send_message(
-            message.from_user.id,
-            f'Сбой в работе программы: {error}'
+def check_tokens():
+    """Проверка наличия токенов в окружении."""
+    if not BOT_TOKEN:
+        logger.critical(
+            'В окружении отсутствует токен телеграм бота'
         )
-        logger.critical(error_message)
+        return False
+    if not MY_TELEGRAM_ID:
+        logger.critical(
+            'В окружении отсутствует ID чата для персонального сообщения'
+        )
+        return False
+
+    if not REGPLACE_TOKEN:
+        logger.critical('В окружении отсутствует токен reg.place')
+        return False
+    return True
 
 
-bot.polling(none_stop=True, interval=0)
+def main():
+    logger.info('Функция main() запущена')
+    if not check_tokens():
+        quit()
+    bot.polling(none_stop=True, interval=0)
+
+
+if __name__ == '__main__':
+    main()
