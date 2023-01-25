@@ -104,8 +104,10 @@ def preparing_heat_info(json_data):
     middle_name = json_data['heat']['name_middle']
     birth_date = json_data['heat']['birth_date']
     gender = GENDERS[json_data['heat']['gender']]
-    paid_at = json_data['heat']['paid_at'].split('T')[0]
     status = HEATS_STATUSES[json_data['heat']['status']]
+    if status == 'зарегистрирована':
+        paid_at = json_data['heat']['paid_at'].split('T')[0]
+    paid_at = None
 
     return (
         f'id: {id}\n'
@@ -132,7 +134,7 @@ def start(message):
                 message.from_user.id,
                 f'Статус ответа сервера: {response.status_code}'
             )
-        logger.critical(f'Статус ответа сервера: {response.status_code}')
+            logger.critical(f'Статус ответа сервера: {response.status_code}')
 
     except Exception as error:
         error_message = f'Сбой в работе программы: {error}'
