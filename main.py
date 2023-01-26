@@ -119,10 +119,9 @@ def preparing_heat_info(json_data):
     birth_date = json_data['heat']['birth_date']
     gender = GENDERS[json_data['heat']['gender']]
     status = HEATS_STATUSES[json_data['heat']['status']]
-    if status == 'зарегистрирована':
+    paid_at = json_data['heat']['paid_at']
+    if paid_at is not None:
         paid_at = json_data['heat']['paid_at'].split('T')[0]
-    else:
-        paid_at = None
 
     return (
         f'id: {id}\n'
