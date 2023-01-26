@@ -24,7 +24,7 @@ Telegram bot for organizers of Uralkhim Legkov Race 2023. Allows to get all race
 > ФИО: Павел Дьяконов Владимирович\
 > Дата рождения: 1967-09-30\
 > Пол: М\
-> Дата оплаты заявки: 2023-01-22\
+> Дата оплаты заявки: 2023-01-22
 
 ## Требования
 Сервер на Ubuntu с установленным на нем python, pip и git
