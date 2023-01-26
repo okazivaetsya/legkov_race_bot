@@ -160,7 +160,7 @@ def check_response(response):
         error_message = 'Ответ API не является словарем'
         logger.error(error_message)
         raise TypeError(error_message)
-    elif 'event' or 'heat' not in response:
+    if 'event' or 'heat' not in response:
         error_message = 'Ответ API не содержит ключ "homeworks"'
         logger.error(error_message)
         raise KeyError(error_message)
