@@ -164,8 +164,7 @@ def check_response(response):
         error_message = 'Ответ API не содержит ключ "homeworks"'
         logger.error(error_message)
         raise KeyError(error_message)
-    homework_list = response['homeworks']
-    return homework_list
+    return response['homeworks']
 
 
 @bot.message_handler(content_types=['text'])
