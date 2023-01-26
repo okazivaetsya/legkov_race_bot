@@ -121,7 +121,8 @@ def preparing_heat_info(json_data):
     status = HEATS_STATUSES[json_data['heat']['status']]
     if status == 'зарегистрирована':
         paid_at = json_data['heat']['paid_at'].split('T')[0]
-    paid_at = None
+    else:
+        paid_at = None
 
     return (
         f'id: {id}\n'
