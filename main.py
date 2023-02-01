@@ -29,6 +29,13 @@ GENDERS = {
     'female': 'Ж'
 }
 
+RACES = {
+    '70f36b3e-07f7-4ead-9c70-20bd95292bad': '30 км (мужчины)',
+    '79c3e3b0-fa3e-46d4-8ac1-81929833ec09': '20 км (женщины)',
+    'e277f22f-bb2f-449e-b319-5623c6fc1dff': '10 км (мужчины и женщины)',
+    '71da9a7a-2699-42fc-a6a9-7a4171ae5879': 'Детская гонка 1 км, 3 км, 5 км',
+}
+
 bot = telebot.TeleBot(BOT_TOKEN)
 
 logger = logging.getLogger(__name__)
@@ -112,20 +119,21 @@ def get_adult_heats_count(json_data):
 
 def preparing_heat_info(json_data):
     """Вытаскиваем из json все необходимые данные об участнике"""
-    id = json_data['heat']['id']
-    first_name = json_data['heat']['name_first']
-    last_name = json_data['heat']['name_last']
-    middle_name = json_data['heat']['name_middle']
-    birth_date = json_data['heat']['birth_date']
-    gender = GENDERS[json_data['heat']['gender']]
-    status = HEATS_STATUSES[json_data['heat']['status']]
-    paid_at = json_data['heat']['paid_at']
+    id = json_data['data']['attributes']['number']
+    first_name = json_data['data']['attributes']['name_first']
+    last_name = json_data['data']['attributes']['name_last']
+    middle_name = json_data['data']['attributes']['name_middle']
+    birth_date = json_data['data']['attributes']['birth_date']
+    gender = GENDERS[json_data['data']['attributes']['gender']]
+    status = HEATS_STATUSES[json_data['data']['attributes']['status']]
+    paid_at = json_data['data']['attributes']['paid_at']
     if paid_at is not None:
-        paid_at = json_data['heat']['paid_at'].split('T')[0]
-
+        paid_at = json_data['data']['attributes']['paid_at'].split('T')[0]
+    dist = RACES[json_data['data']['relationships']['race']['data']['id']]
     return (
         f'id: {id}\n'
         f'Статус: {status}\n'
+        f'Дистанция: {dist}\n'
         f'ФИО: {last_name} {first_name} {middle_name}\n'
         f'Дата рождения: {birth_date}\n'
         f'Пол: {gender}\n'
@@ -177,6 +185,8 @@ def get_heat_info(message):
         heat_url = f'https://api.reg.place/v1/heats/{heat_number}'
         response = requests.get(heat_url, params=params)
         if response.status_code == 200:
+            uuid = json.loads(response.text)['heat']['heat_url'].split('/')[-1]
+            response = requests.get(f'https://api.reg.place/v3/heats/{uuid}')
             json_data = json.loads(response.text)
             text_message = preparing_heat_info(json_data)
             bot.send_message(message.from_user.id, text_message)
