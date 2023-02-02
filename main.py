@@ -5,6 +5,7 @@ from logging.handlers import RotatingFileHandler
 
 import requests
 import telebot
+from telebot import types
 from dotenv import find_dotenv, load_dotenv
 
 load_dotenv(find_dotenv())
@@ -141,71 +142,6 @@ def preparing_heat_info(json_data):
     )
 
 
-@bot.message_handler(commands=['start'])
-def start(message):
-    """Обработчик команды start"""
-    logger.info(f'Пользователь {message.from_user.id} нажал старт')
-    try:
-        response = requests.get(URL, params=PARAMS)
-        logger.info('Получен ответ от API')
-        if response.status_code == 200:
-            json_data = json.loads(response.text)['event']
-            text_message = preparing_race_info(json_data)
-            bot.send_message(message.from_user.id, text_message)
-    except Exception as error:
-        error_message = f'Сбой в работе программы: {error}'
-        bot.send_message(
-            message.from_user.id,
-            f'Сбой в работе программы: {error}'
-        )
-        logger.critical(error_message)
-
-
-def check_response(response):
-    """Проверка ответа от API."""
-    if not isinstance(response, dict):
-        error_message = 'Ответ API не является словарем'
-        logger.error(error_message)
-        raise TypeError(error_message)
-    if 'event' or 'heat' not in response:
-        error_message = 'Ответ API не содержит ключ "homeworks"'
-        logger.error(error_message)
-        raise KeyError(error_message)
-    return response['homeworks']
-
-
-@bot.message_handler(content_types=['text'])
-def get_heat_info(message):
-    """Обработчик тестовых сообщений"""
-    params = {
-        'token': REGPLACE_TOKEN
-    }
-    try:
-        heat_number = int(message.text)
-        heat_url = f'https://api.reg.place/v1/heats/{heat_number}'
-        response = requests.get(heat_url, params=params)
-        if response.status_code == 200:
-            uuid = json.loads(response.text)['heat']['heat_url'].split('/')[-1]
-            response = requests.get(f'https://api.reg.place/v3/heats/{uuid}')
-            json_data = json.loads(response.text)
-            text_message = preparing_heat_info(json_data)
-            bot.send_message(message.from_user.id, text_message)
-        else:
-            bot.send_message(
-                    message.from_user.id,
-                    f'Ошибка: Статус ответа сервера: {response.status_code}'
-                )
-            logger.critical(f'Статус ответа сервера: {response.status_code}')
-
-    except Exception as error:
-        error_message = f'Сбой в работе программы: {error}'
-        bot.send_message(
-            message.from_user.id,
-            f'Сбой в работе программы: {error}'
-        )
-        logger.critical(error_message)
-
-
 def check_tokens():
     """Проверка наличия токенов в окружении."""
     if not BOT_TOKEN:
@@ -225,10 +161,97 @@ def check_tokens():
     return True
 
 
+def check_response(response):
+    """Проверка ответа от API."""
+    if not isinstance(response, dict):
+        error_message = 'Ответ API не является словарем'
+        logger.error(error_message)
+        raise TypeError(error_message)
+    if 'event' or 'heat' not in response:
+        error_message = 'Ответ API не содержит ключ "homeworks"'
+        logger.error(error_message)
+        raise KeyError(error_message)
+    return response['homeworks']
+
+
+@bot.message_handler(commands=['start'])
+def start(message):
+    """Обработчик команды start"""
+    logger.info(f'Пользователь {message.from_user.id} нажал старт')
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    btn1 = types.KeyboardButton('Race statistic')
+    btn2 = types.KeyboardButton('Athlete info')
+    markup.add(btn1, btn2)
+    try:
+        response = requests.get(URL, params=PARAMS)
+        logger.info('Получен ответ от API')
+        if response.status_code == 200:
+            json_data = json.loads(response.text)['event']
+            text_message = preparing_race_info(json_data)
+            bot.send_message(
+                message.from_user.id,
+                text_message,
+                reply_markup=markup
+            )
+    except Exception as error:
+        error_message = f'Сбой в работе программы: {error}'
+        bot.send_message(
+            message.from_user.id,
+            f'Сбой в работе программы: {error}'
+        )
+        logger.critical(error_message)
+
+
+@bot.message_handler(content_types=['text'])
+def get_heat_info(message):
+    """Обработчик тестовых сообщений"""
+    params = {
+        'token': REGPLACE_TOKEN
+    }
+    if message.text == 'Race statistic':
+        start(message)
+    elif message.text == 'Athlete info':
+        text_message = 'Введите шестизначный номер заявки участника:'
+        bot.send_message(message.from_user.id, text_message)
+    else:
+        try:
+            heat_number = int(message.text)
+            heat_url = f'https://api.reg.place/v1/heats/{heat_number}'
+            response = requests.get(heat_url, params=params)
+            if response.status_code == 200:
+                uuid = json.loads(
+                    response.text
+                )['heat']['heat_url'].split('/')[-1]
+                response = requests.get(
+                    f'https://api.reg.place/v3/heats/{uuid}'
+                )
+                json_data = json.loads(response.text)
+                text_message = preparing_heat_info(json_data)
+                bot.send_message(message.from_user.id, text_message)
+            else:
+                bot.send_message(
+                        message.from_user.id,
+                        f'Ошибка!!! Статус ответа: {response.status_code}'
+                    )
+                logger.critical(
+                    f'Статус ответа сервера: {response.status_code}'
+                )
+
+        except Exception as error:
+            error_message = f'Сбой в работе программы: {error}'
+            bot.send_message(
+                message.from_user.id,
+                f'Сбой в работе программы: {error}'
+            )
+            logger.critical(error_message)
+
+
 def main():
     logger.info('Функция main() запущена')
     if not check_tokens():
         quit()
+    keyboard1 = telebot.types.ReplyKeyboardMarkup()
+    keyboard1.row('Привет', 'Пока')
     bot.polling(none_stop=True, interval=0)
 
 
