@@ -16,7 +16,8 @@ REGPLACE_TOKEN = os.getenv('REGPLACE_TOKEN')
 URL = 'https://api.reg.place/v1/events/uralhim-gonka-legkova/'
 PARAMS = {
     'heats_stats': 'true',
-    'races': 'true'
+    'races': 'true',
+    'compact': 'false'
 }
 HEATS_STATUSES = {
     'ready': 'зарегистрирована',
@@ -63,14 +64,14 @@ def get_response_from_regplace():
 def get_price_static(adult_heats_count):
     """Определяем кол-во слотов до повышения цены"""
     if adult_heats_count > 800:
-        return 'cлоты продаются по максимальной цене 3500 руб'
+        return 'это максимальная цена!'
     if adult_heats_count > 300:
         return (
-            f'2500 руб. До повышения цены осталось '
+            f'до повышения цены осталось '
             f'{800 - adult_heats_count} слотов'
         )
     return (
-        f'1500 руб. До повышения цены осталось '
+        f'до повышения цены осталось '
         f'{300 - adult_heats_count} слотов'
     )
 
@@ -81,10 +82,13 @@ def preparing_race_info(json_data):
     heats_conts = json_data['heats_ready_count']
     distance30k_name = json_data['races'][0]['name']
     distance30k_ready_heats_count = json_data['races'][0]['heats_ready_count']
+    distance30k_fee = json_data['races'][0]['fee']['base_amount']
     distance20k_name = json_data['races'][1]['name']
     distance20k_ready_heats_count = json_data['races'][1]['heats_ready_count']
+    distance20k_fee = json_data['races'][1]['fee']['base_amount']
     distance10k_name = json_data['races'][2]['name']
     distance10k_ready_heats_count = json_data['races'][2]['heats_ready_count']
+    distance10k_fee = json_data['races'][2]['fee']['base_amount']
     distance_kids_name = json_data['races'][3]['name']
     distance_kids_ready_heats_count = json_data[
         'races'
@@ -94,6 +98,16 @@ def preparing_race_info(json_data):
         distance20k_ready_heats_count +
         distance10k_ready_heats_count
     )
+    if distance30k_fee == distance20k_fee == distance10k_fee:
+        price = distance30k_fee
+    else:
+        logger.critical(
+                    f'Ошибка стоимости участия!!!\n'
+                    f'30 км - {distance30k_fee}\n'
+                    f'20 км - {distance20k_fee}\n'
+                    f'10 км - {distance10k_fee}\n'
+                )
+        price = 'ОШИБКА!!! Цены кривые!'
 
     return (
         f'Название гонки: {race_name}\n'
@@ -102,7 +116,8 @@ def preparing_race_info(json_data):
         f'{distance20k_name}: {distance20k_ready_heats_count}\n'
         f'{distance10k_name}: {distance10k_ready_heats_count}\n'
         f'{distance_kids_name}: {distance_kids_ready_heats_count}\n'
-        f'Стоимость участия: {get_price_static(adult_heats_count)}'
+        f'Стоимость участия: {int(price)} руб. '
+        f'({get_price_static(adult_heats_count)})'
     )
 
 
@@ -251,7 +266,7 @@ def main():
     if not check_tokens():
         quit()
     keyboard1 = telebot.types.ReplyKeyboardMarkup()
-    keyboard1.row('Привет', 'Пока')
+    keyboard1.row('Race statistic', 'Athlete info')
     bot.polling(none_stop=True, interval=0)
 
 
