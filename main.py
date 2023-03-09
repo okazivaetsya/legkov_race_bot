@@ -142,6 +142,7 @@ def preparing_heat_info(json_data):
     birth_date = json_data['data']['attributes']['birth_date']
     gender = GENDERS[json_data['data']['attributes']['gender']]
     status = HEATS_STATUSES[json_data['data']['attributes']['status']]
+    bib = json_data['data']['attributes']['bib']
     paid_at = json_data['data']['attributes']['paid_at']
     if paid_at is not None:
         paid_at = json_data['data']['attributes']['paid_at'].split('T')[0]
@@ -154,6 +155,7 @@ def preparing_heat_info(json_data):
         f'Дата рождения: {birth_date}\n'
         f'Пол: {gender}\n'
         f'Дата оплаты заявки: {paid_at}\n'
+        f'Стартовый номер: {bib}\n'
     )
 
 
